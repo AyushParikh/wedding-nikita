@@ -28,17 +28,22 @@ module.exports = async (req, res) => {
     const sheets = google.sheets({ version: 'v4', auth });
 
     const sheetId = process.env.RESPONSE_SHEET_ID;
-    const sheetName = process.env.RESPONSE_SHEET_NAME || 'Responses';
+    const configuredName = (process.env.RESPONSE_SHEET_NAME || 'Response').trim();
     const timestamp = new Date().toISOString();
+
+    // Discover exact sheet tab name
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+    const availableTabs = meta.data.sheets.map(s => s.properties.title);
+    const sheetName = availableTabs.find(t => t.toLowerCase() === configuredName.toLowerCase()) || configuredName;
 
     // Read existing rows
     const existing = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: sheetName });
     const allRows = existing.data.values || [];
 
-    // Remove previous rows for this code (column index 1)
+    // Remove previous rows for this code (column index 2)
     const codeLower = (code || '').trim().toLowerCase();
     const kept = codeLower
-      ? allRows.filter(row => (row[1] || '').trim().toLowerCase() !== codeLower)
+      ? allRows.filter(row => (row[2] || '').trim().toLowerCase() !== codeLower)
       : allRows;
 
     // Build new rows: timestamp | name | code | event | response | guestCount
