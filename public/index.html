@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0e0c0a" />
-  <title>RSVP — Ayush &amp; Nikita</title>
+  <title>RSVP — Nikita &amp; Ayush</title>
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -17,7 +17,7 @@
 
     <!-- ── Left: Photo ───────────────────────────────────────── -->
     <div class="layout-photo">
-      <img src="hero.JPG" alt="Ayush and Nikita" class="hero-img" />
+      <img src="hero.JPG" alt="Nikita and Ayush" class="hero-img" />
       <div class="hero-overlay"></div>
     </div>
 
@@ -30,9 +30,9 @@
         <div class="panel-heading">
           <p class="hero-eyebrow">Together with their families</p>
           <h1 class="hero-names">
-            <span class="name-line">Ayush</span>
-            <span class="hero-amp">&amp;</span>
             <span class="name-line">Nikita</span>
+            <span class="hero-amp">&amp;</span>
+            <span class="name-line">Ayush</span>
           </h1>
           <p class="hero-tagline">Request the honour of your presence</p>
           <div class="heading-rule"><span>✦</span></div>
@@ -82,7 +82,7 @@
 
         </div><!-- /card -->
 
-        <footer>Ayush &amp; Nikita &nbsp;·&nbsp; 2026</footer>
+        <footer>Nikita &amp; Ayush &nbsp;·&nbsp; 2026</footer>
 
       </div><!-- /panel-inner -->
     </div><!-- /layout-panel -->
@@ -92,9 +92,9 @@
   <script>
     let guestData = null;
     let guestCode = null;
-    let guestLimit = null;
     const selections = {};
     const counts = {};
+    const eventLimits = {};
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -163,7 +163,6 @@
         }
         guestData = data;
         guestCode = code;
-        guestLimit = data.limit || null;
         buildRsvpScreen(data);
         showScreen('screen-rsvp');
       } catch (err) {
@@ -174,31 +173,33 @@
       }
     }
 
-    function buildRsvpScreen({ firstName, lastName, events }) {
-      document.getElementById('guest-greeting').textContent = `Welcome, ${firstName} ${lastName}!`;
+    function buildRsvpScreen({ name, events }) {
+      document.getElementById('guest-greeting').textContent = `Welcome, ${name}!`;
       Object.keys(selections).forEach(k => delete selections[k]);
       Object.keys(counts).forEach(k => delete counts[k]);
+      Object.keys(eventLimits).forEach(k => delete eventLimits[k]);
       const list = document.getElementById('events-list');
       list.innerHTML = '';
-      events.forEach(({ name, date, time }) => {
-        selections[name] = null;
-        counts[name] = 0;
+      events.forEach(({ name: evName, date, limit }) => {
+        selections[evName] = null;
+        counts[evName] = 0;
+        if (limit) eventLimits[evName] = limit;
         const card = document.createElement('div');
         card.className = 'event-card';
-        const eid = 'count-' + name.replace(/\s+/g, '-');
+        const eid = 'count-' + evName.replace(/\s+/g, '-');
         card.innerHTML = `
-          <div class="event-name">${escHtml(name)}</div>
-          ${date ? `<div class="event-date">${escHtml(date)}${time ? `<span class="event-time">${escHtml(time.replace('-', ' – '))}</span>` : ''}</div>` : ''}
+          <div class="event-name">${escHtml(evName)}</div>
+          ${date ? `<div class="event-date">${escHtml(date)}</div>` : ''}
           <div class="rsvp-options">
-            <button class="rsvp-btn" data-event="${escHtml(name)}" data-value="Attending"     onclick="selectRsvp(this)">Attending</button>
-            <button class="rsvp-btn" data-event="${escHtml(name)}" data-value="Not Attending" onclick="selectRsvp(this)">Not Attending</button>
+            <button class="rsvp-btn" data-event="${escHtml(evName)}" data-value="Attending"     onclick="selectRsvp(this)">Attending</button>
+            <button class="rsvp-btn" data-event="${escHtml(evName)}" data-value="Not Attending" onclick="selectRsvp(this)">Not Attending</button>
           </div>
           <div class="guest-count" id="${eid}" style="display:none">
-            <span class="count-label">How many guests?${guestLimit ? `<span class="count-max"> (max ${guestLimit})</span>` : ''}</span>
+            <span class="count-label">How many guests?${limit ? `<span class="count-max"> (max ${limit})</span>` : ''}</span>
             <div class="stepper">
-              <button class="step-btn" onclick="changeCount('${escHtml(name)}', -1)">−</button>
-              <span class="step-val" id="val-count-${name.replace(/\s+/g, '-')}">0</span>
-              <button class="step-btn" onclick="changeCount('${escHtml(name)}', 1)">+</button>
+              <button class="step-btn" onclick="changeCount('${escHtml(evName)}', -1)">−</button>
+              <span class="step-val" id="val-count-${evName.replace(/\s+/g, '-')}">0</span>
+              <button class="step-btn" onclick="changeCount('${escHtml(evName)}', 1)">+</button>
             </div>
           </div>`;
         list.appendChild(card);
@@ -215,16 +216,24 @@
       const cls = value === 'Attending' ? 'selected-attending' : 'selected-not-attending';
       btn.classList.add(cls);
 
-      counts[event] = value === 'Attending' ? (counts[event] || 0) : 0;
+      if (value === 'Attending') {
+        counts[event] = counts[event] || 1;
+      } else {
+        counts[event] = 0;
+      }
 
       // show/hide guest count stepper
       const eid = 'count-' + event.replace(/\s+/g, '-');
       const countEl = document.getElementById(eid);
-      if (countEl) countEl.style.display = value === 'Attending' ? 'flex' : 'none';
+      if (countEl) {
+        countEl.style.display = value === 'Attending' ? 'flex' : 'none';
+        const valEl = document.getElementById('val-count-' + event.replace(/\s+/g, '-'));
+        if (valEl) valEl.textContent = counts[event];
+      }
     }
 
     function changeCount(event, delta) {
-      const max = guestLimit || Infinity;
+      const max = eventLimits[event] || Infinity;
       counts[event] = Math.min(max, Math.max(0, (counts[event] ?? 0) + delta));
       const el = document.getElementById('val-count-' + event.replace(/\s+/g, '-'));
       if (el) el.textContent = counts[event];
@@ -248,8 +257,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            firstName: guestData.firstName,
-            lastName:  guestData.lastName,
+            name:      guestData.name,
             code:      guestCode,
             responses: selections,
             counts,

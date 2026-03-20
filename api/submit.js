@@ -17,10 +17,10 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { firstName, lastName, code, responses, counts } = req.body || {};
+  const { name, code, responses, counts } = req.body || {};
 
-  if (!firstName || !lastName || !responses || typeof responses !== 'object') {
-    return res.status(400).json({ error: 'firstName, lastName, and responses are required' });
+  if (!name || !responses || typeof responses !== 'object') {
+    return res.status(400).json({ error: 'name and responses are required' });
   }
 
   try {
@@ -35,17 +35,16 @@ module.exports = async (req, res) => {
     const existing = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: sheetName });
     const allRows = existing.data.values || [];
 
-    // Remove previous rows for this code (column index 3)
+    // Remove previous rows for this code (column index 1)
     const codeLower = (code || '').trim().toLowerCase();
     const kept = codeLower
-      ? allRows.filter(row => (row[3] || '').trim().toLowerCase() !== codeLower)
+      ? allRows.filter(row => (row[1] || '').trim().toLowerCase() !== codeLower)
       : allRows;
 
-    // Build new rows with code in column D
+    // Build new rows: timestamp | name | code | event | response | guestCount
     const newRows = Object.entries(responses).map(([event, response]) => [
       timestamp,
-      firstName.trim(),
-      lastName.trim(),
+      name.trim(),
       (code || '').trim(),
       event,
       response,
