@@ -216,11 +216,7 @@
       const cls = value === 'Attending' ? 'selected-attending' : 'selected-not-attending';
       btn.classList.add(cls);
 
-      if (value === 'Attending') {
-        counts[event] = counts[event] || 1;
-      } else {
-        counts[event] = 0;
-      }
+      counts[event] = value === 'Attending' ? (counts[event] || 0) : 0;
 
       // show/hide guest count stepper
       const eid = 'count-' + event.replace(/\s+/g, '-');
