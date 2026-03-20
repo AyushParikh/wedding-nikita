@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0e0c0a" />
+  <title>RSVP — Ayush &amp; Nikita</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="layout">
+
+    <!-- ── Left: Photo ───────────────────────────────────────── -->
+    <div class="layout-photo">
+      <img src="hero.JPG" alt="Ayush and Nikita" class="hero-img" />
+      <div class="hero-overlay"></div>
+    </div>
+
+    <!-- ── Right: Names + Form ───────────────────────────────── -->
+    <div class="layout-panel">
+
+      <div class="panel-inner">
+
+        <!-- Couple heading -->
+        <div class="panel-heading">
+          <p class="hero-eyebrow">Together with their families</p>
+          <h1 class="hero-names">
+            <span class="name-line">Ayush</span>
+            <span class="hero-amp">&amp;</span>
+            <span class="name-line">Nikita</span>
+          </h1>
+          <p class="hero-tagline">Request the honour of your presence</p>
+          <div class="heading-rule"><span>✦</span></div>
+        </div>
+
+        <!-- RSVP Card -->
+        <div class="card">
+
+          <!-- Screen 1: Code Lookup -->
+          <div class="screen active" id="screen-lookup">
+            <h2 class="screen-title">Find Your Invitation</h2>
+            <div class="screen-title-rule"></div>
+            <p class="screen-subtitle">Enter the invitation code from your invitation.</p>
+            <div class="error-msg" id="lookup-error"></div>
+            <label for="invitation-code">Invitation Code</label>
+            <input type="text" id="invitation-code" placeholder="e.g. XK7R2" autocomplete="off" style="text-transform:uppercase" />
+            <button class="btn btn-primary" id="lookup-btn" onclick="lookupGuest()">Find My Invitation</button>
+          </div>
+
+          <!-- Screen 2: Event RSVP -->
+          <div class="screen" id="screen-rsvp">
+            <h2 class="screen-title">Your RSVP</h2>
+            <div class="screen-title-rule"></div>
+            <p class="guest-greeting" id="guest-greeting"></p>
+            <p class="screen-subtitle">Please indicate your attendance for each celebration.</p>
+            <div class="error-msg" id="rsvp-error"></div>
+            <div class="events-list" id="events-list"></div>
+            <button class="btn btn-primary" id="submit-btn" onclick="submitRsvp()">Submit RSVP</button>
+            <br/>
+            <button class="btn btn-ghost" onclick="goBack()">← Back</button>
+          </div>
+
+          <!-- Screen 3: Confirmation -->
+          <div class="screen" id="screen-confirm">
+            <div class="confirmation-icon">✓</div>
+            <h2 class="confirmation-title">Thank You!</h2>
+            <p class="confirmation-msg">
+              Your RSVP has been received.<br/>
+              We can't wait to celebrate with you.
+            </p>
+            <div class="rsvp-summary">
+              <div id="summary-rows"></div>
+            </div>
+            <br/>
+            <button class="btn btn-ghost" style="width:100%;margin-top:1rem;" onclick="startOver()">Submit Another RSVP</button>
+          </div>
+
+        </div><!-- /card -->
+
+        <footer>Ayush &amp; Nikita &nbsp;·&nbsp; 2026</footer>
+
+      </div><!-- /panel-inner -->
+    </div><!-- /layout-panel -->
+
+  </div><!-- /layout -->
+
+  <script>
+    let guestData = null;
+    let guestCode = null;
+    let guestLimit = null;
+    const selections = {};
+    const counts = {};
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function goBack() { showScreen('screen-lookup'); }
+
+    function startOver() {
+      document.getElementById('invitation-code').value = '';
+      document.getElementById('events-list').innerHTML = '';
+      document.getElementById('summary-rows').innerHTML = '';
+      Object.keys(selections).forEach(k => delete selections[k]);
+      Object.keys(counts).forEach(k => delete counts[k]);
+      guestData = null;
+      hideError('lookup-error');
+      hideError('rsvp-error');
+      showScreen('screen-lookup');
+    }
+
+    let toastTimer = null;
+    function showError(id, msg) {
+      let toast = document.getElementById('toast-popup');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-popup';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.classList.add('visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+    }
+
+    function hideError(id) {
+      const toast = document.getElementById('toast-popup');
+      if (toast) toast.classList.remove('visible');
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Please wait…';
+      } else {
+        btn.disabled = false;
+        btn.textContent = btnId === 'lookup-btn' ? 'Find My Invitation' : 'Submit RSVP';
+      }
+    }
+
+    async function lookupGuest() {
+      hideError('lookup-error');
+      const code = document.getElementById('invitation-code').value.trim();
+      if (!code) {
+        showError('lookup-error', 'Please enter your invitation code.');
+        return;
+      }
+      setLoading('lookup-btn', true);
+      try {
+        const res  = await fetch(`/api/lookup?code=${encodeURIComponent(code)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Server error');
+        if (!data.found) {
+          showError('lookup-error', "We couldn't find an invitation matching that code. Please check the code or contact us directly.");
+          return;
+        }
+        guestData = data;
+        guestCode = code;
+        guestLimit = data.limit || null;
+        buildRsvpScreen(data);
+        showScreen('screen-rsvp');
+      } catch (err) {
+        showError('lookup-error', 'Something went wrong. Please try again.');
+        console.error(err);
+      } finally {
+        setLoading('lookup-btn', false);
+      }
+    }
+
+    function buildRsvpScreen({ firstName, lastName, events }) {
+      document.getElementById('guest-greeting').textContent = `Welcome, ${firstName} ${lastName}!`;
+      Object.keys(selections).forEach(k => delete selections[k]);
+      Object.keys(counts).forEach(k => delete counts[k]);
+      const list = document.getElementById('events-list');
+      list.innerHTML = '';
+      events.forEach(({ name, date, time }) => {
+        selections[name] = null;
+        counts[name] = 0;
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        const eid = 'count-' + name.replace(/\s+/g, '-');
+        card.innerHTML = `
+          <div class="event-name">${escHtml(name)}</div>
+          ${date ? `<div class="event-date">${escHtml(date)}${time ? `<span class="event-time">${escHtml(time.replace('-', ' – '))}</span>` : ''}</div>` : ''}
+          <div class="rsvp-options">
+            <button class="rsvp-btn" data-event="${escHtml(name)}" data-value="Attending"     onclick="selectRsvp(this)">Attending</button>
+            <button class="rsvp-btn" data-event="${escHtml(name)}" data-value="Not Attending" onclick="selectRsvp(this)">Not Attending</button>
+          </div>
+          <div class="guest-count" id="${eid}" style="display:none">
+            <span class="count-label">How many guests?${guestLimit ? `<span class="count-max"> (max ${guestLimit})</span>` : ''}</span>
+            <div class="stepper">
+              <button class="step-btn" onclick="changeCount('${escHtml(name)}', -1)">−</button>
+              <span class="step-val" id="val-count-${name.replace(/\s+/g, '-')}">0</span>
+              <button class="step-btn" onclick="changeCount('${escHtml(name)}', 1)">+</button>
+            </div>
+          </div>`;
+        list.appendChild(card);
+      });
+    }
+
+    function selectRsvp(btn) {
+      const event = btn.dataset.event;
+      const value = btn.dataset.value;
+      selections[event] = value;
+      btn.closest('.rsvp-options').querySelectorAll('.rsvp-btn').forEach(b =>
+        b.classList.remove('selected-attending', 'selected-not-attending', 'selected-maybe')
+      );
+      const cls = value === 'Attending' ? 'selected-attending' : 'selected-not-attending';
+      btn.classList.add(cls);
+
+      counts[event] = value === 'Attending' ? (counts[event] || 0) : 0;
+
+      // show/hide guest count stepper
+      const eid = 'count-' + event.replace(/\s+/g, '-');
+      const countEl = document.getElementById(eid);
+      if (countEl) countEl.style.display = value === 'Attending' ? 'flex' : 'none';
+    }
+
+    function changeCount(event, delta) {
+      const max = guestLimit || Infinity;
+      counts[event] = Math.min(max, Math.max(0, (counts[event] ?? 0) + delta));
+      const el = document.getElementById('val-count-' + event.replace(/\s+/g, '-'));
+      if (el) el.textContent = counts[event];
+    }
+
+    async function submitRsvp() {
+      hideError('rsvp-error');
+      const unselected = Object.entries(selections).filter(([, v]) => v === null).map(([k]) => k);
+      if (unselected.length > 0) {
+        showError('rsvp-error', `Please select a response for: ${unselected.join(', ')}`);
+        return;
+      }
+      const zeroCount = Object.entries(selections).filter(([k, v]) => v === 'Attending' && (counts[k] || 0) === 0).map(([k]) => k);
+      if (zeroCount.length > 0) {
+        showError('rsvp-error', `Please specify the number of guests for: ${zeroCount.join(', ')}`);
+        return;
+      }
+      setLoading('submit-btn', true);
+      try {
+        const res  = await fetch('/api/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: guestData.firstName,
+            lastName:  guestData.lastName,
+            code:      guestCode,
+            responses: selections,
+            counts,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Server error');
+        buildConfirmationScreen(selections);
+        showScreen('screen-confirm');
+      } catch (err) {
+        showError('rsvp-error', 'Failed to submit your RSVP. Please try again.');
+        console.error(err);
+      } finally {
+        setLoading('submit-btn', false);
+      }
+    }
+
+    function buildConfirmationScreen(responses) {
+      const container = document.getElementById('summary-rows');
+      container.innerHTML = '';
+      Object.entries(responses).forEach(([event, response]) => {
+        const div = document.createElement('div');
+        div.className = 'summary-row';
+        const cls = response.replace(/\s+/g, '-');
+        const countStr = response !== 'Not Attending' && counts[event]
+          ? `<span class="summary-count">${counts[event]} guest${counts[event] > 1 ? 's' : ''}</span>`
+          : '';
+        div.innerHTML = `
+          <span class="summary-event">${escHtml(event)}</span>
+          <span class="summary-right">
+            <span class="summary-response ${cls}">${escHtml(response)}</span>
+            ${countStr}
+          </span>`;
+        container.appendChild(div);
+      });
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    document.getElementById('invitation-code').addEventListener('keydown', e => {
+      if (e.key === 'Enter') lookupGuest();
+    });
+
+    // Auto-lookup from ?code= query param
+    const urlCode = new URLSearchParams(window.location.search).get('code');
+    if (urlCode) {
+      document.getElementById('invitation-code').value = urlCode;
+      history.replaceState(null, '', window.location.pathname);
+      lookupGuest();
+    }
+
+    // Heart cursor trail
+    let lastHeart = 0;
+    document.addEventListener('mousemove', e => {
+      const now = Date.now();
+      if (now - lastHeart < 40) return;
+      lastHeart = now;
+      const heart = document.createElement('span');
+      heart.textContent = '♥';
+      heart.style.cssText = `
+        position: fixed;
+        left: ${e.clientX}px;
+        top: ${e.clientY}px;
+        pointer-events: none;
+        font-size: ${10 + Math.random() * 10}px;
+        color: #e03c3c;
+        opacity: 0.85;
+        transform: translate(-50%, -50%);
+        transition: opacity 1s ease, transform 1s ease;
+        z-index: 9999;
+      `;
+      document.body.appendChild(heart);
+      requestAnimationFrame(() => {
+        heart.style.opacity = '0';
+        heart.style.transform = `translate(-50%, -180%) scale(0.4)`;
+      });
+      setTimeout(() => heart.remove(), 1000);
+    });
+  </script>
+</body>
+</html>
