@@ -60,6 +60,8 @@
             <p class="screen-subtitle">Please indicate your attendance for each celebration.</p>
             <div class="error-msg" id="rsvp-error"></div>
             <div class="events-list" id="events-list"></div>
+            <label for="special-notes" style="margin-top:1.25rem;display:block;">Special Notes <span style="font-weight:400;opacity:0.6;">(optional)</span></label>
+            <textarea id="special-notes" rows="3" placeholder="Dietary restrictions, accessibility needs, or anything else…" style="width:100%;resize:vertical;"></textarea>
             <button class="btn btn-primary" id="submit-btn" onclick="submitRsvp()">Submit RSVP</button>
             <br/>
             <button class="btn btn-ghost" onclick="goBack()">← Back</button>
@@ -107,6 +109,7 @@
       document.getElementById('invitation-code').value = '';
       document.getElementById('events-list').innerHTML = '';
       document.getElementById('summary-rows').innerHTML = '';
+      document.getElementById('special-notes').value = '';
       Object.keys(selections).forEach(k => delete selections[k]);
       Object.keys(counts).forEach(k => delete counts[k]);
       guestData = null;
@@ -257,6 +260,7 @@
             code:      guestCode,
             responses: selections,
             counts,
+            notes:     document.getElementById('special-notes').value.trim(),
           }),
         });
         const data = await res.json();

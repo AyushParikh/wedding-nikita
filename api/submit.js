@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { name, code, responses, counts } = req.body || {};
+  const { name, code, responses, counts, notes } = req.body || {};
 
   if (!name || !responses || typeof responses !== 'object') {
     return res.status(400).json({ error: 'name and responses are required' });
@@ -46,7 +46,8 @@ module.exports = async (req, res) => {
       ? allRows.filter(row => (row[2] || '').trim().toLowerCase() !== codeLower)
       : allRows;
 
-    // Build new rows: timestamp | name | code | event | response | guestCount
+    // Build new rows: timestamp | name | code | event | response | guestCount | notes
+    const notesVal = (notes || '').trim();
     const newRows = Object.entries(responses).map(([event, response]) => [
       timestamp,
       name.trim(),
@@ -54,6 +55,7 @@ module.exports = async (req, res) => {
       event,
       response,
       (counts && counts[event] != null) ? Number(counts[event]) : '',
+      notesVal,
     ]);
 
     // Clear and rewrite
