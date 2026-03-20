@@ -12,7 +12,8 @@ function getAuth() {
 
 // Columns that are metadata, not events
 const SKIP_HEADERS = new Set([
-  'name of guest', 'number of people', 'rsvp', 'city/town', 'contact info', 'code',
+  'name of guest', 'number of people', 'rsvp', 'city/town', 'contact info',
+  'spare day guests', 'family', 'code',
 ]);
 
 module.exports = async (req, res) => {
