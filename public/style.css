@@ -260,7 +260,8 @@ label {
   margin-bottom: 0.45rem;
 }
 
-input[type="text"] {
+input[type="text"],
+textarea {
   width: 100%;
   background: var(--surface2);
   border: 1px solid rgba(201,169,110,0.2);
@@ -276,9 +277,11 @@ input[type="text"] {
   -webkit-appearance: none;
 }
 
-input[type="text"]::placeholder { color: var(--muted); opacity: 0.7; }
+input[type="text"]::placeholder,
+textarea::placeholder { color: var(--muted); opacity: 0.7; }
 
-input[type="text"]:focus {
+input[type="text"]:focus,
+textarea:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(201,169,110,0.08);
 }
