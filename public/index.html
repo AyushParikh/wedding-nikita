@@ -63,6 +63,7 @@
             <label for="special-notes" style="margin-top:1.25rem;display:block;">Special Notes <span style="font-weight:400;opacity:0.6;">(optional)</span></label>
             <textarea id="special-notes" rows="3" placeholder="Dietary restrictions, accessibility needs, or anything else…" style="resize:vertical;"></textarea>
             <button class="btn btn-primary" id="submit-btn" onclick="submitRsvp()">Submit RSVP</button>
+            <p style="text-align:center;font-size:0.8rem;opacity:0.6;margin-top:0.75rem;margin-bottom:0;">Your response will be received with love. Please RSVP by May 30th, 2026.</p>
             <br/>
             <button class="btn btn-ghost" onclick="goBack()">← Back</button>
           </div>
@@ -84,7 +85,7 @@
 
         </div><!-- /card -->
 
-        <footer>Nikita &amp; Ayush &nbsp;·&nbsp; 2026</footer>
+        <footer>Nikita &amp; Ayush &nbsp;·&nbsp; July 2026 &nbsp;❤️&nbsp; with love and gratitude</footer>
 
       </div><!-- /panel-inner -->
     </div><!-- /layout-panel -->
@@ -194,7 +195,7 @@
           <div class="event-name">${escHtml(evName)}</div>
           ${date ? `<div class="event-date">${escHtml(date)}</div>` : ''}
           <div class="rsvp-options">
-            <button class="rsvp-btn" data-event="${escHtml(evName)}" data-value="Attending"     onclick="selectRsvp(this)">Attending</button>
+            <button class="rsvp-btn" data-event="${escHtml(evName)}" data-value="Attending"     onclick="selectRsvp(this)">Joyfully Accept</button>
             <button class="rsvp-btn" data-event="${escHtml(evName)}" data-value="Not Attending" onclick="selectRsvp(this)">Not Attending</button>
           </div>
           <div class="guest-count" id="${eid}" style="display:none">
